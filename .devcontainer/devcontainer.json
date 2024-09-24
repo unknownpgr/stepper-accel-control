@@ -1,6 +1,8 @@
 {
 	"name": "stepper-control",
-	"image": "mcr.microsoft.com/devcontainers/base:jammy",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
@@ -14,9 +16,8 @@
 			]
 		}
 	},
-	"postCreateCommand": "scripts/init.sh",
 	"remoteEnv": {
-		"PATH": "${containerEnv:PATH}:/${containerWorkspaceFolder}/scripts",
-		"PICO_SDK_PATH": "/usr/local/pico-sdk"
-	}
+		"PATH": "${containerEnv:PATH}:/${containerWorkspaceFolder}/scripts"
+	},
+	"remoteUser": "vscode"
 }
