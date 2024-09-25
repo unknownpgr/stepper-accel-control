@@ -17,5 +17,5 @@ set(SOURCES
 add_compile_options(-Wall)
 add_executable(stepper_control ${SOURCES})
 target_include_directories(stepper_control PRIVATE ${INC_DIR})
-target_link_libraries(stepper_control pico_stdlib)
+target_link_libraries(stepper_control pico_stdlib pico_multicore pico_stdio_usb)
 pico_add_extra_outputs(stepper_control)
