@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     libnewlib-arm-none-eabi \
     git \
     sudo \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up a non-root user
