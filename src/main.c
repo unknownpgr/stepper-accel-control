@@ -115,23 +115,37 @@ void core1_main()
         {1, 0, 0, 1},
     };
 
+    uint64_t max_step_time_us = 100000; // 100ms
     uint64_t time_us = 0;
     uint64_t time_last_us = 0;
 
     while (true)
     {
-        if (abs(velocity) < 0.01)
-            continue;
-        float step = (1000000.0f / 400.f) / (abs(velocity));
         time_us = time_us_64();
-        if (time_us - time_last_us > step)
+
+        if (abs(velocity) > 0.01)
         {
-            time_last_us = time_us;
+            float interval = (1000000.0f / 400.f) / (abs(velocity));
+
+            // Step the motor if the time since the last step is greater than the interval
+            if (time_us - time_last_us > interval)
+            {
+                time_last_us = time_us;
+                for (int i = 0; i < 4; i++)
+                {
+                    gpio_put(PIN_A + i, pin_map[position & 0x07][i]);
+                }
+                position += velocity > 0 ? 1 : -1;
+            }
+        }
+
+        // Limit the step holding time to max_step_time_us
+        if (time_us - time_last_us > max_step_time_us)
+        {
             for (int i = 0; i < 4; i++)
             {
-                gpio_put(PIN_A + i, pin_map[position & 0x07][i]);
+                gpio_put(PIN_A + i, 0);
             }
-            position += velocity > 0 ? 1 : -1;
         }
     }
 }
