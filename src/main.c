@@ -7,32 +7,84 @@
 
 #define abs(x) ((x) < 0 ? -(x) : (x))
 
+// UART configuration
+#define UART_ID uart0
+#define BAUD_RATE 9600
+#define UART_TX_PIN 0
+#define UART_RX_PIN 1
+
 volatile uint32_t position = 0; // Steps
 volatile float velocity = 0;    // Revolutions per second
 
+/**
+ * Core 0 is responsible for acceleration control
+ */
 void core0_main()
 {
-    printf("Hello, Raspberry Pi Pico USB Serial!\n");
+    // USB serial initialization
+    stdio_init_all();
+    while (!stdio_usb_connected())
+    {
+        sleep_ms(10);
+    }
+    printf("USB serial initialized\n");
 
+    // UART initialization (for encoder sensor reading)
+    uart_init(UART_ID, BAUD_RATE);
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+    printf("UART initialized\n");
+
+    // Acceleration control variables
+    float acceleration = 0.0f;
+    uint32_t previous_time = time_us_32();
+    int32_t sign = 1;
+    int32_t acceleration_buffer = 0;
+
+    // Log variables
+    uint32_t last_log_time = time_us_32();
+    uint32_t log_interval = 1000000; // 1 second
+
+    // Main loop
     while (true)
     {
-        char input[20];
-        if (scanf("%19s", input) == 1)
+        // Update velocity
+        uint32_t current_time = time_us_32();
+        uint32_t delta_time = current_time - previous_time;
+        previous_time = current_time;
+        velocity += acceleration * delta_time / 1000000.0f;
+
+        // Read acceleration from USB serial
+        int c = getchar_timeout_us(0);
+        if (c == '-')
         {
-            float new_velocity;
-            if (sscanf(input, "%f", &new_velocity) == 1)
-            {
-                velocity = new_velocity;
-                printf("Velocity set to: %.2f\n", velocity);
-            }
-            else
-            {
-                printf("Invalid input. Please enter a number.\n");
-            }
+            sign = -1;
+        }
+        else if (c >= '0' && c <= '9')
+        {
+            acceleration_buffer = acceleration_buffer * 10 + (c - '0');
+        }
+        else if (c == '\r' || c == '\n')
+        {
+            acceleration = sign * acceleration_buffer / 100.0f;
+            sign = 1;
+            acceleration_buffer = 0;
+            printf("Acceleration set: %f\n", acceleration);
+        }
+
+        // Log acceleration every second
+        if (current_time - last_log_time >= log_interval)
+        {
+            last_log_time += log_interval;
+            printf("Position: %lu\n", position);
+            printf("Velocity: %f\n", velocity);
         }
     }
 }
 
+/**
+ * Core 1 is responsible for driving the stepper motor
+ */
 void core1_main()
 {
     // Initialize GPIO pins for stepper motor
@@ -84,13 +136,11 @@ void core1_main()
     }
 }
 
+/**
+ * Entrypoint
+ */
 int main()
 {
-    stdio_init_all();
-    while (!stdio_usb_connected())
-    {
-        sleep_ms(10);
-    }
     multicore_launch_core1(core1_main);
     core0_main();
     return 0;
