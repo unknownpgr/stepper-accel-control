@@ -43,7 +43,12 @@ void core0_main()
 
     // Log variables
     uint32_t last_log_time = time_us_32();
-    uint32_t log_interval = 1000000; // 1 second
+
+    // Stop switch variables
+    const uint STOP_SWITCH_PIN = 16;
+    gpio_init(STOP_SWITCH_PIN);
+    gpio_set_dir(STOP_SWITCH_PIN, GPIO_IN);
+
 
     // Main loop
     while (true)
@@ -76,8 +81,11 @@ void core0_main()
         if (current_time - last_log_time >= log_interval)
         {
             last_log_time += log_interval;
-            printf("Position: %lu\n", position);
-            printf("Velocity: %f\n", velocity);
+        // If the stop switch is pressed, set both velocity and acceleration to 0
+        if (gpio_get(STOP_SWITCH_PIN))
+        {
+            velocity = 0;
+            acceleration = 0;
         }
     }
 }
