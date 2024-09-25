@@ -4,8 +4,8 @@ cd `dirname $0`/..
 ROOT=`pwd`
 
 # Build the project
-mkdir -p _build
-cd _build
+mkdir -p build
+cd build
 cmake ..
 make
 
